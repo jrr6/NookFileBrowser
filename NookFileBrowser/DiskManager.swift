@@ -112,13 +112,13 @@ class DiskManager : ObservableObject {
     }
     
     func downloadFile(path: String) {
-        let dlProc = Process()
-        dlProc.executableURL = Constants.adbURL
         let dlDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0].path
         guard dlDir != "" else {
             print("Could not find user Downloads directory")
             return
         }
+        let dlProc = Process()
+        dlProc.executableURL = Constants.adbURL
         dlProc.arguments = ["pull", path, dlDir]
         dlProc.launch()
     }
