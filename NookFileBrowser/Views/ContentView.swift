@@ -21,25 +21,30 @@ struct ContentView: View {
         VStack(alignment: .leading) {
             TopBar(pwd: $manager.pwd, showHidden: $showHidden)
             
-            List {
-                // Iterate with an inner ForEach because having empty List items (i.e., what we'd get iterating with a List when showHidden == false) creates ugly gaps
-                ForEach(manager.contents) { entity in
-                    if !entity.hidden || self.showHidden {
-                        EntityView(entity: entity, pwd: self.$manager.pwd, downloadAction: self.manager.downloadFile)
+            if manager.error {
+                Text("Unable to load files. Is the device connected and adb installed?")
+                .padding()
+            } else {
+                List {
+                    // Iterate with an inner ForEach because having empty List items (i.e., what we'd get iterating with a List when showHidden == false) creates ugly gaps
+                    ForEach(manager.contents) { entity in
+                        if !entity.hidden || self.showHidden {
+                            EntityView(entity: entity, pwd: self.$manager.pwd, downloadAction: self.manager.downloadFile)
+                        }
                     }
                 }
+                .onDrop(of: ["public.item"], isTargeted: $targeted) { provider in
+                    return false
+                }
+                .overlay(
+                    Rectangle().strokeBorder(
+                        style: StrokeStyle(
+                            lineWidth: 2,
+                            dash: [15]
+                        )
+                    ).overlay(Rectangle().fill(Color.gray)).opacity(targeted ? 0.25 : 0)
+                )
             }
-            .onDrop(of: ["public.item"], isTargeted: $targeted) { provider in
-                return false
-            }
-            .overlay(
-                Rectangle().strokeBorder(
-                    style: StrokeStyle(
-                        lineWidth: 2,
-                        dash: [15]
-                    )
-                ).overlay(Rectangle().fill(Color.gray)).opacity(targeted ? 0.25 : 0)
-            )
         }
     }
 }

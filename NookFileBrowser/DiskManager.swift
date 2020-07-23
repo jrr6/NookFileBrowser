@@ -29,6 +29,7 @@ class DiskManager : ObservableObject {
     }
     
     @Published var contents = [Entity]()
+    @Published var error: Bool = false
     
     private var cancellable: AnyCancellable!
     private var buffer: String = ""
@@ -46,16 +47,30 @@ class DiskManager : ObservableObject {
             let safePwd = pwd.replacingOccurrences(of: "\"", with: "\\\"") // in case the pwd has quotation marks in its name
             activeProc.arguments = ["shell", #"for f in "\#(safePwd)"/{.,}*; do if [[ -e "$f" ]]; then if [[ -d "$f" ]]; then echo -n "d"; else echo -n "f"; fi; busybox basename "$f"; fi; done"#]
             
-            let pipe = Pipe()
-            activeProc.standardOutput = pipe
-            let pipeHandle = pipe.fileHandleForReading
+            let outPipe = Pipe()
+            activeProc.standardOutput = outPipe
+            let outPipeHandle = outPipe.fileHandleForReading
+            
+            activeProc.terminationHandler = { proc in
+                if proc.terminationStatus != 0 {
+                    DispatchQueue.main.async {
+                        self.error = true
+                    }
+                }
+            }
             
             buffer = ""
-            pipeHandle.readabilityHandler = { pipe in
-                if let line = String(data: pipe.availableData, encoding: .utf8) {
+            outPipeHandle.readabilityHandler = { fileHandle in
+                // We need to capture a single snapshot of availableData to use throughout the closure, since availableData will keep populating as we execute
+                let data = fileHandle.availableData
+                if data.isEmpty {
+                    // Make sure to deregister when we receive EOF; otherwise, this handler will be called endlessly
+                    print(self.buffer)
+                    outPipeHandle.readabilityHandler = nil
+                } else if let line = String(data: data, encoding: .utf8) {
                     self.buffer += line
                     let entities = self.buffer.split(separator: "\r\n")
-                    if entities.count > 0 {
+                    if !entities.isEmpty {
                         let validEntities: [Substring]
                         if self.buffer.count > 1 && self.buffer.lastIndex(of: "\r\n") == self.buffer.index(before: self.buffer.endIndex) {
                             // If we hit an update right at the end of a file (or it's the end of the list), we can do a complete sweep and flush the buffer
@@ -69,7 +84,7 @@ class DiskManager : ObservableObject {
                         DispatchQueue.main.async {
                             self.contents.append(contentsOf:
                                 validEntities
-                                    .filter { $0 != "d." && $0 != "d.." }
+                                    .filter { $0 != "d." && $0 != "d.." } // ignore the "." and ".." directories
                                     .map { Entity(name: String($0.dropFirst()),
                                                   type: $0.first == "d" ? .directory : .file,
                                                   hidden: $0.dropFirst().first == ".") }
@@ -77,11 +92,12 @@ class DiskManager : ObservableObject {
                         }
                     }
                 } else {
-                    print("Error decoding data: \(pipe.availableData)")
+                    print("Error decoding data: \(data)")
                 }
             }
             
             contents = []
+            error = false
             do {
                 try activeProc.run()
             } catch let e {
