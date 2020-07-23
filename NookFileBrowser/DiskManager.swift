@@ -122,6 +122,10 @@ class DiskManager : ObservableObject {
         activeProc.runAndCatch(withErrDesc: "Error running adb to fetch files")
     }
     
+    func forceRefreshFilesList() {
+        updateFileList(for: pwd)
+    }
+    
     func downloadFile(path: String) {
         let dlDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0].path
         guard dlDir != "" else {

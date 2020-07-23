@@ -22,9 +22,16 @@ struct ContentView: View {
             TopBar(pwd: $manager.pwd, showHidden: $showHidden)
             
             if manager.error {
-                Text("Unable to load files. Is the device connected and adb installed?")
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack {
+                    Text("Unable to load files. Is the device connected and adb installed?")
+                        .padding()
+                    
+                    Button(action: {
+                        self.manager.forceRefreshFilesList()
+                    }) {
+                        Text("Retry")
+                    }.padding()
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     // Iterate with an inner ForEach because having empty List items (i.e., what we'd get iterating with a List when showHidden == false) creates ugly gaps
