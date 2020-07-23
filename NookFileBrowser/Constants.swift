@@ -11,4 +11,6 @@ import Foundation
 public struct Constants {
     static let adbURL = URL(fileURLWithPath: "/usr/local/bin/adb")
     static let homePath = "/sdcard/NOOK/My Files"
+    static let uploadPath = Constants.homePath + "/"
+    static let storageRootURL = "file:///storage/emulated/legacy"
 }

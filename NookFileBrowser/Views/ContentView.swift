@@ -14,7 +14,7 @@ struct ContentView: View {
     @State private var targeted = false
     
     // TODO: Add ability to push files (remember to trigger a sync after doing so!)
-    // TODO: Figure out why rows switch to center alignment when text become multiline
+    // TODO: Figure out why rows switch to center alignment when text becomes multiline
     // TODO: Add Combine stuff to DiskManager
     
     var body: some View {
@@ -34,8 +34,9 @@ struct ContentView: View {
                         }
                     }
                 }
-                .onDrop(of: ["public.item"], isTargeted: $targeted) { provider in
-                    return false
+                .onDrop(of: [kUTTypeFileURL as String], isTargeted: $targeted) { providers in
+                    self.manager.upload(providers)
+                    return true
                 }
                 .overlay(
                     Rectangle().strokeBorder(
