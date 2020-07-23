@@ -21,7 +21,7 @@ struct ContentView: View {
         VStack(alignment: .leading) {
             TopBar(pwd: $manager.pwd, showHidden: $showHidden)
             
-            if manager.error {
+            if manager.loadFailure {
                 VStack {
                     Text("Unable to load files. Is the device connected and adb installed?")
                         .padding()
@@ -37,12 +37,12 @@ struct ContentView: View {
                     // Iterate with an inner ForEach because having empty List items (i.e., what we'd get iterating with a List when showHidden == false) creates ugly gaps
                     ForEach(manager.contents) { entity in
                         if !entity.hidden || self.showHidden {
-                            EntityView(entity: entity, pwd: self.$manager.pwd, downloadAction: self.manager.downloadFile)
+                            EntityView(entity: entity, pwd: self.$manager.pwd, downloadAction: self.manager.downloadFile, deleteAction: self.manager.deleteFile)
                         }
                     }
                 }
                 .onDrop(of: [kUTTypeFileURL as String], isTargeted: $targeted) { providers in
-                    self.manager.upload(providers)
+                    self.manager.uploadFiles(providers)
                     return true
                 }
                 .overlay(

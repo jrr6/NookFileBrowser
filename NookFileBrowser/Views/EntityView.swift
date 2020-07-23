@@ -12,7 +12,19 @@ struct EntityView : View {
     var entity: DiskManager.Entity
     @Binding var pwd: String
     var downloadAction: (String) -> Void
-
+    var deleteAction: (String) -> Void
+    
+    private var fullPath: String
+    @State var alertShown = false
+    
+    internal init(entity: DiskManager.Entity, pwd: Binding<String>, downloadAction: @escaping (String) -> Void, deleteAction: @escaping (String) -> Void) {
+        self.entity = entity
+        self._pwd = pwd
+        self.downloadAction = downloadAction
+        self.deleteAction = deleteAction
+        self.fullPath = pwd.wrappedValue + "/" + entity.name
+    }
+    
     var body: some View {
         Group {
             if entity.type == .directory {
@@ -23,8 +35,24 @@ struct EntityView : View {
             } else {
                 FileView(entity.name, hidden: entity.hidden)
                     .onTapGesture(count: 2) {
-                        self.downloadAction(self.pwd + "/" + self.entity.name)
+                        self.downloadAction(self.fullPath)
                     }
+            }
+        }
+        .alert(isPresented: $alertShown) {
+            Alert(title: Text("CAUTION: Confirm Deletion"),
+                  message: Text("The following path will be permanently, irretrievably deleted:\n\n\(self.fullPath)"),
+                  primaryButton: Alert.Button.destructive(Text("Delete")) {
+                        self.deleteAction(self.fullPath)
+                  },
+                  secondaryButton: Alert.Button.cancel()
+            )
+        }
+        .contextMenu {
+            Button(action: {
+                self.alertShown = true
+            }) {
+                Text("Delete")
             }
         }
     }
@@ -71,6 +99,6 @@ struct FileView : View {
 
 struct EntityView_Previews: PreviewProvider {
     static var previews: some View {
-        EntityView(entity: DiskManager.Entity(name: "My file with a horrendously long name that will probably spill over.epub", type: .file, hidden: false), pwd: .constant("/sdcard/NOOK/My Files"), downloadAction: { _ in })
+        EntityView(entity: DiskManager.Entity(name: "My file with a horrendously long name that will probably spill over.epub", type: .file, hidden: false), pwd: .constant("/sdcard/NOOK/My Files"), downloadAction: { _ in }, deleteAction: { _ in })
     }
 }

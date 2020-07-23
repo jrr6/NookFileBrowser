@@ -23,6 +23,14 @@ extension Process {
     }
 }
 
+extension String {
+    var escapedForQuotedString: String {
+        get {
+            self.replacingOccurrences(of: "\"", with: "\\\"").replacingOccurrences(of: "\\", with: "\\\\")
+        }
+    }
+}
+
 class DiskManager : ObservableObject {
     struct Entity : Identifiable {
         enum ObjectType {
@@ -40,7 +48,7 @@ class DiskManager : ObservableObject {
     }
     
     @Published var contents = [Entity]()
-    @Published var error: Bool = false
+    @Published var loadFailure: Bool = false
     
     private var cancellable: AnyCancellable!
     private var buffer: String = ""
@@ -64,7 +72,7 @@ class DiskManager : ObservableObject {
         activeProc?.terminate()
         activeProc = Process()
         activeProc.executableURL = Constants.adbURL
-        let safePwd = pwd.replacingOccurrences(of: "\"", with: "\\\"") // in case the pwd has quotation marks in its name
+        let safePwd = pwd.escapedForQuotedString // in case the pwd has quotation marks in its name
         activeProc.arguments = ["shell", #"for f in "\#(safePwd)"/{.,}*; do if [[ -e "$f" ]]; then if [[ -d "$f" ]]; then echo -n "d"; else echo -n "f"; fi; busybox basename "$f"; fi; done"#]
         
         let outPipe = Pipe()
@@ -75,7 +83,7 @@ class DiskManager : ObservableObject {
             // If the process did not succeed or was not terminated prematurely (i.e., because the user changed directories before loading could complete), display an error message
             if proc.terminationStatus != 0 && proc.terminationStatus != SIGTERM {
                 DispatchQueue.main.async {
-                    self.error = true
+                    self.loadFailure = true
                 }
             }
         }
@@ -118,7 +126,7 @@ class DiskManager : ObservableObject {
         }
         
         contents = []
-        error = false
+        loadFailure = false
         activeProc.runAndCatch(withErrDesc: "Error running adb to fetch files")
     }
     
@@ -144,7 +152,7 @@ class DiskManager : ObservableObject {
         }
     }
     
-    func upload(_ providers: [NSItemProvider]) {
+    func uploadFiles(_ providers: [NSItemProvider]) {
         for provider in providers {
             if provider.hasItemConformingToTypeIdentifier(kUTTypeFileURL as String) {
                 provider.loadItem(forTypeIdentifier: kUTTypeFileURL as String, options: nil) { item, err in
@@ -163,18 +171,32 @@ class DiskManager : ObservableObject {
                             print("Upload process failed with status \(uploadProc.terminationStatus)")
                             return
                         }
-                        
-                        let broadcastProc = Process()
-                        broadcastProc.executableURL = Constants.adbURL
-                        broadcastProc.arguments = ["shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_MOUNTED", "-d", Constants.storageRootURL]
-                        broadcastProc.runAndCatch(withErrDesc: "Error sending broadcast")
-                        
-                        DispatchQueue.main.async {
-                            self.updateFileList(for: self.pwd)
-                        }
+                        self.runSyncBroadcastAndRefresh()
                     }
                 }
             }
+        }
+    }
+    
+    func deleteFile(path: String) {
+        let rmProc = Process()
+        rmProc.executableURL = Constants.adbURL
+        rmProc.arguments = ["shell", "rm", "-r", "\"\(path.escapedForQuotedString)\""]
+        rmProc.runAndCatch(withErrDesc: "Error executing rm over adb")
+        
+        rmProc.terminationHandler = { terminatedProc in
+            self.runSyncBroadcastAndRefresh()
+        }
+    }
+    
+    private func runSyncBroadcastAndRefresh() {
+        let broadcastProc = Process()
+        broadcastProc.executableURL = Constants.adbURL
+        broadcastProc.arguments = ["shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_MOUNTED", "-d", Constants.storageRootURL]
+        broadcastProc.runAndCatch(withErrDesc: "Error sending broadcast")
+        
+        DispatchQueue.main.async {
+            self.updateFileList(for: self.pwd)
         }
     }
 }
