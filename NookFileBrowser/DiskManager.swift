@@ -74,7 +74,6 @@ class DiskManager : ObservableObject {
         activeProc.terminationHandler = { proc in
             // If the process did not succeed or was not terminated prematurely (i.e., because the user changed directories before loading could complete), display an error message
             if proc.terminationStatus != 0 && proc.terminationStatus != SIGTERM {
-                print(proc.terminationStatus)
                 DispatchQueue.main.async {
                     self.error = true
                 }
