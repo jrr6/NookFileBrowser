@@ -120,6 +120,12 @@ class DiskManager : ObservableObject {
         let dlProc = Process()
         dlProc.executableURL = Constants.adbURL
         dlProc.arguments = ["pull", path, dlDir]
-        dlProc.launch()
+        dlProc.runAndCatch(withErrDesc: "Error downloading file")
+        dlProc.terminationHandler = { terminatedProc in
+            if terminatedProc.terminationStatus == 0 {
+                let filename = path.components(separatedBy: "/").last ?? path
+                DistributedNotificationCenter.default.post(name: NSNotification.Name(rawValue: "com.apple.DownloadFileFinished"), object: "\(dlDir)/\(filename)", userInfo: nil)
+            }
+        }
     }
 }
