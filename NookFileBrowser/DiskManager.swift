@@ -12,17 +12,6 @@ import Combine
 // Command to list files:
 // for f in ""/{.,}*; do if [[ -e "$f" ]]; then if [[ -d "$f" ]]; then echo -n "d"; else echo -n "f"; fi; busybox basename "$f"; fi; done
 
-extension Process {
-    func runAndCatch(withErrDesc errDesc: String) {
-        do {
-            try self.run()
-        } catch let e {
-            print(errDesc, e.localizedDescription, e)
-            return
-        }
-    }
-}
-
 extension String {
     var escapedForQuotedString: String {
         get {
@@ -49,6 +38,23 @@ class DiskManager : ObservableObject {
     
     @Published var contents = [Entity]()
     @Published var loadFailure: Bool = false
+    @Published var isPendingError: Bool = false {
+        didSet {
+            if !isPendingError {
+                pendingErrorMessage = nil
+            }
+        }
+    }
+    
+    var pendingErrorMessage: String? = nil {
+        didSet {
+            if pendingErrorMessage != nil {
+                DispatchQueue.main.async {
+                    self.isPendingError = true
+                }
+            }
+        }
+    }
     
     private var cancellable: AnyCancellable!
     private var buffer: String = ""
@@ -94,7 +100,6 @@ class DiskManager : ObservableObject {
             let data = fileHandle.availableData
             if data.isEmpty {
                 // Make sure to deregister when we receive EOF; otherwise, this handler will be called endlessly
-                print(self.buffer)
                 outPipeHandle.readabilityHandler = nil
             } else if let line = String(data: data, encoding: .utf8) {
                 self.buffer += line
@@ -121,13 +126,13 @@ class DiskManager : ObservableObject {
                     }
                 }
             } else {
-                print("Error decoding data: \(data)")
+                self.showError("Error decoding file list output data: \(data)")
             }
         }
         
         contents = []
         loadFailure = false
-        activeProc.runAndCatch(withErrDesc: "Error running adb to fetch files")
+        runAndCatch(activeProc, withErrDesc: "Error running adb to fetch files")
     }
     
     func forceRefreshFilesList() {
@@ -137,17 +142,19 @@ class DiskManager : ObservableObject {
     func downloadFile(path: String) {
         let dlDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0].path
         guard dlDir != "" else {
-            print("Could not find user Downloads directory")
+            showError("Could not find user Downloads directory")
             return
         }
         let dlProc = Process()
         dlProc.executableURL = Constants.adbURL
         dlProc.arguments = ["pull", path, dlDir]
-        dlProc.runAndCatch(withErrDesc: "Error downloading file")
+        runAndCatch(dlProc, withErrDesc: "Error downloading file")
         dlProc.terminationHandler = { terminatedProc in
             if terminatedProc.terminationStatus == 0 {
                 let filename = path.components(separatedBy: "/").last ?? path
                 DistributedNotificationCenter.default.post(name: NSNotification.Name(rawValue: "com.apple.DownloadFileFinished"), object: "\(dlDir)/\(filename)", userInfo: nil)
+            } else {
+                self.showError("Failed to download file with termination status \(terminatedProc.terminationStatus)")
             }
         }
     }
@@ -164,11 +171,11 @@ class DiskManager : ObservableObject {
                     let uploadProc = Process()
                     uploadProc.executableURL = Constants.adbURL
                     uploadProc.arguments = ["push", localFilePath, Constants.uploadPath]
-                    uploadProc.runAndCatch(withErrDesc: "Error uploading file")
+                    self.runAndCatch(uploadProc, withErrDesc: "Error uploading file")
                     
                     uploadProc.terminationHandler = { uploadProc in
                         guard uploadProc.terminationStatus == 0 else {
-                            print("Upload process failed with status \(uploadProc.terminationStatus)")
+                            self.showError("Upload process failed with status \(uploadProc.terminationStatus)")
                             return
                         }
                         self.runSyncBroadcastAndRefresh()
@@ -182,7 +189,7 @@ class DiskManager : ObservableObject {
         let rmProc = Process()
         rmProc.executableURL = Constants.adbURL
         rmProc.arguments = ["shell", "rm", "-r", "\"\(path.escapedForQuotedString)\""]
-        rmProc.runAndCatch(withErrDesc: "Error executing rm over adb")
+        runAndCatch(rmProc, withErrDesc: "Error executing rm over adb")
         
         rmProc.terminationHandler = { terminatedProc in
             self.runSyncBroadcastAndRefresh()
@@ -193,10 +200,23 @@ class DiskManager : ObservableObject {
         let broadcastProc = Process()
         broadcastProc.executableURL = Constants.adbURL
         broadcastProc.arguments = ["shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_MOUNTED", "-d", Constants.storageRootURL]
-        broadcastProc.runAndCatch(withErrDesc: "Error sending broadcast")
+        runAndCatch(broadcastProc, withErrDesc: "Error sending broadcast")
         
         DispatchQueue.main.async {
             self.updateFileList(for: self.pwd)
         }
+    }
+    
+    private func runAndCatch(_ process: Process, withErrDesc errDesc: String) {
+        do {
+            try process.run()
+        } catch let e {
+            showError("\(errDesc)\t\(e.localizedDescription)\t\(e)")
+            return
+        }
+    }
+    
+    private func showError(_ message: String) {
+        pendingErrorMessage = message
     }
 }

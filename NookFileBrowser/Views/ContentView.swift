@@ -54,6 +54,10 @@ struct ContentView: View {
                     ).overlay(Rectangle().fill(Color.gray)).opacity(targeted ? 0.25 : 0)
                 )
             }
+        }.alert(isPresented: $manager.isPendingError) {
+            Alert(title: Text("Error"),
+                  message: Text(manager.pendingErrorMessage ?? "Error message not found."),
+                  dismissButton: Alert.Button.default(Text("OK")))
         }
     }
 }
