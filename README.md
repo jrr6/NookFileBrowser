@@ -14,4 +14,5 @@ NookFileBrowser requires `adb`, which can be installed with `brew cask install a
 * To download a file, double-click on it; or, right-click on a file or directory and select "Download." Downloads are saved to your Downloads folder.
 * To upload a document or directory from your computer's disk to the currently selected directory in the Nook's file system, drag and drop the local file onto the file list.
 * To delete a file or directory, right-click on it and select "Delete." You'll be prompted to confirm deletion; deletion cannot be undone.
+* To show or hide hidden files and directories, toggle the "Show All" checkbox in the top right.
 
