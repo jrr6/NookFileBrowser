@@ -26,7 +26,7 @@ extension Process {
 extension String {
     var escapedForQuotedString: String {
         get {
-            self.replacingOccurrences(of: "\"", with: "\\\"").replacingOccurrences(of: "\\", with: "\\\\")
+            self.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         }
     }
 }
