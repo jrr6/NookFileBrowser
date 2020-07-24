@@ -6,7 +6,7 @@ This application is intended as a lightweight replacement for Android File Trans
 
 ### Requirements
 
-NookFileBrowser requires `adb`, which can be installed with `brew cask install android-platform-tools` or by following the instructions on the appropriate [Android Developers page](https://developer.android.com/studio/command-line/adb). Also, you'll need to enable USB debugging in your Nook's developer settings (accessed by pressing three times on the "n" icon in the "About" section of the settings list).
+NookFileBrowser requires `adb`, which can be installed with `brew cask install android-platform-tools` or by following the instructions on the appropriate [Android Developers page](https://developer.android.com/studio/command-line/adb). Also, you'll need to enable USB debugging in your Nook's developer settings (accessed by pressing repeatedly on the "n" icon in the "About" section of the settings list).
 
 ### Usage
 
