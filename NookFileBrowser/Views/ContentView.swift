@@ -13,9 +13,7 @@ struct ContentView: View {
     @State private var showHidden = false
     @State private var targeted = false
     
-    // TODO: Add ability to push files (remember to trigger a sync after doing so!)
     // TODO: Figure out why rows switch to center alignment when text becomes multiline
-    // TODO: Add Combine stuff to DiskManager
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -38,6 +36,8 @@ struct ContentView: View {
                     ForEach(manager.contents) { entity in
                         if !entity.hidden || self.showHidden {
                             EntityView(entity: entity, pwd: self.$manager.pwd, downloadAction: self.manager.downloadFile, deleteAction: self.manager.deleteFile)
+                                // Ensures views remain leading edge-aligned, even when text becomes multiline due to width constraints
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                         }
                     }
                 }

@@ -9,9 +9,6 @@
 import Foundation
 import Combine
 
-// Command to list files:
-// for f in ""/{.,}*; do if [[ -e "$f" ]]; then if [[ -d "$f" ]]; then echo -n "d"; else echo -n "f"; fi; busybox basename "$f"; fi; done
-
 extension String {
     var escapedForQuotedString: String {
         get {
