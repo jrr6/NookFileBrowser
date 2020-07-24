@@ -17,7 +17,7 @@ struct EntityView : View {
     private var fullPath: String
     @State var alertShown = false
     
-    internal init(entity: DiskManager.Entity, pwd: Binding<String>, downloadAction: @escaping (String) -> Void, deleteAction: @escaping (String) -> Void) {
+    init(entity: DiskManager.Entity, pwd: Binding<String>, downloadAction: @escaping (String) -> Void, deleteAction: @escaping (String) -> Void) {
         self.entity = entity
         self._pwd = pwd
         self.downloadAction = downloadAction
@@ -49,6 +49,12 @@ struct EntityView : View {
             )
         }
         .contextMenu {
+            Button(action: {
+                self.downloadAction(self.fullPath)
+            }) {
+                Text("Download")
+            }
+            
             Button(action: {
                 self.alertShown = true
             }) {
