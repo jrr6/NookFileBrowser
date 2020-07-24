@@ -83,7 +83,7 @@ class DiskManager : ObservableObject {
         let outPipeHandle = outPipe.fileHandleForReading
         
         activeProc.terminationHandler = { proc in
-            // If the process did not succeed or was not terminated prematurely (i.e., because the user changed directories before loading could complete), display an error message
+            // If the process did not succeed and was not terminated prematurely (i.e., because the user changed directories before loading could complete), display an error message—most likely, the device is not connected
             if proc.terminationStatus != 0 && proc.terminationStatus != SIGTERM {
                 DispatchQueue.main.async {
                     self.loadFailure = true
@@ -208,7 +208,7 @@ class DiskManager : ObservableObject {
         do {
             try process.run()
         } catch let e {
-            showError("\(errDesc)\t\(e.localizedDescription)\t\(e)")
+            showError("\(errDesc)\t\(e.localizedDescription)\n\n\(e)")
             return
         }
     }

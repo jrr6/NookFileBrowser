@@ -21,7 +21,7 @@ struct ContentView: View {
             
             if manager.loadFailure {
                 VStack {
-                    Text("Unable to load files. Is the device connected and adb installed?")
+                    Text("Unable to load files. Have you connected your Nook to your computer and enabled USB debugging?")
                         .padding()
                     
                     Button(action: {
