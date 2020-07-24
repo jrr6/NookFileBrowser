@@ -13,8 +13,6 @@ struct ContentView: View {
     @State private var showHidden = false
     @State private var targeted = false
     
-    // TODO: Figure out why rows switch to center alignment when text becomes multiline
-    
     var body: some View {
         VStack(alignment: .leading) {
             TopBar(pwd: $manager.pwd, showHidden: $showHidden)
@@ -56,7 +54,7 @@ struct ContentView: View {
             }
         }.alert(isPresented: $manager.isPendingError) {
             Alert(title: Text("Error"),
-                  message: Text(manager.pendingErrorMessage ?? "Error message not found."),
+                  message: Text(manager.pendingErrorMessage ?? "Error message missing."),
                   dismissButton: Alert.Button.default(Text("OK")))
         }
     }

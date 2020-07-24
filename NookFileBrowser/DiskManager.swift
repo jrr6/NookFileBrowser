@@ -72,7 +72,9 @@ class DiskManager : ObservableObject {
     }
     
     private func updateFileList(for pwd: String) {
-        activeProc?.terminate()
+        if let oldProc = activeProc, oldProc.isRunning {
+            oldProc.terminate()
+        }
         activeProc = Process()
         activeProc.executableURL = Constants.adbURL
         let safePwd = pwd.escapedForQuotedString // in case the pwd has quotation marks in its name
@@ -129,7 +131,7 @@ class DiskManager : ObservableObject {
         
         contents = []
         loadFailure = false
-        runAndCatch(activeProc, withErrDesc: "Error running adb to fetch files")
+        runAndCatch(activeProc, withErrDesc: "Error running adb to fetch files. The most likely cause of this error is that you have not installed the adb command-line tool, or it is not installed at /usr/local/bin/adb. Further details are provided for reference:")
     }
     
     func forceRefreshFilesList() {
